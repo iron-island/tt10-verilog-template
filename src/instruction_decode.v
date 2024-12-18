@@ -12,14 +12,12 @@ module instruction_decode(
     // Inputs
     input wire             clk,
     input wire             rst_n,
-    input wire             halt,
+    input wire             halt_id,
     input wire [2:0]       opcode,
     input wire [2:0]       operand,
-    input wire [3:0]       instr_ptr_if_reg,
     
     // Outputs
     output reg [2:0]       operand_id_reg,
-    output reg [3:0]       instr_ptr_id_reg,
     output reg [1:0]       op1_sel,
     output reg [1:0]       op2_sel,
     output reg [1:0]       operation_sel,
@@ -33,16 +31,14 @@ module instruction_decode(
 
     always@(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            operand_id_reg   <= 48'd0;
-            instr_ptr_id_reg <= 4'd0;
+            operand_id_reg <= 48'd0;
 
             op1_sel        <= 2'd0;
             op2_sel        <= 2'd0;
             operation_sel  <= 2'd0;
             reg_wr_en      <= 2'd0;
-        end else if (!halt) begin
-            operand_id_reg   <= operand;
-            instr_ptr_id_reg <= instr_ptr_if_reg;
+        end else if (!halt_id) begin
+            operand_id_reg <= operand;
 
             op1_sel        <= next_op1_sel;
             op2_sel        <= next_op2_sel;

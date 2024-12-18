@@ -3,15 +3,16 @@ module execute(
     input wire             clk,
     input wire             rst_n,
     input wire [2:0]       operand_id_reg,
-    input wire [3:0]       instr_ptr_id_reg,
     input wire [1:0]       op1_sel,
     input wire [1:0]       op2_sel,
     input wire [1:0]       operation_sel,
     input wire [4:0]       reg_wr_en,
     
     // Outputs
-    output reg [3:0]       instr_ptr,
-    output reg             halt,
+    output reg [4:0]       instr_ptr,
+    output wire            halt_if,
+    output wire            halt_id,
+    output wire            halt_ex,
     output reg [2:0]       reg_out,
     output reg             out_valid
 );
@@ -30,7 +31,7 @@ module execute(
     wire [47:0]   xor_output;
     wire [2:0]    mod_output;
     wire [4:0]    add_output;
-    wire [3:0]    jump_output;
+    wire [4:0]    jump_output;
 
     // Selected operands
     reg [47:0]    op1;
@@ -44,10 +45,17 @@ module execute(
     reg [47:0]    reg_B;
     reg [47:0]    reg_C;
 
+    // Shift register for initial and final 2-cycle pipeline delay
+    reg [1:0]     init_shift_reg;
+    reg [1:0]     halt_shift_reg;
+
     // Registers
     always@(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
-            instr_ptr <= 3'd0;
+            init_shift_reg <= 2'd0;
+            halt_shift_reg <= 2'd0;
+
+            instr_ptr <= 5'd0;
 
             reg_A <= `REG_A_RST_VAL;
             reg_B <= `REG_B_RST_VAL;
@@ -55,7 +63,10 @@ module execute(
 
             reg_out   <= 3'd0;
             out_valid <= 1'b0;
-        end else if (!halt) begin
+        end else begin
+            init_shift_reg <= {init_shift_reg[0], 1'b1};
+            halt_shift_reg <= {halt_shift_reg[0], halt_if};
+
             instr_ptr <= jump_output;
 
             reg_A <= (reg_wr_en[0]) ? result : reg_A;
@@ -68,6 +79,11 @@ module execute(
         end
     end
 
+    // Halt signals
+    assign halt_if = instr_ptr[4]; // driven by combinational so that IF stage would immediately halt
+    assign halt_id = halt_shift_reg[0];
+    assign halt_ex = halt_shift_reg[1];
+
     // Combo or literal operand
     assign lit_op         = operand_id_reg;
     assign shift_combo_op = combo_op[5:0];
@@ -76,10 +92,8 @@ module execute(
     assign shift_output = reg_A >> shift_combo_op;
     assign xor_output   = op1 ^ op2;
     assign mod_output   = op1[2:0];
-    assign add_output   = instr_ptr_id_reg + 4'd2;
-    assign jump_output  = ((reg_A != 48'd0) && (operation_sel == `JUMP_SEL)) ? {1'b0, lit_op} : add_output[3:0];
-
-    assign halt = add_output[4];
+    assign add_output   = (init_shift_reg[1]) ? instr_ptr + 5'd2 : instr_ptr;
+    assign jump_output  = ((reg_A != 48'd0) && (operation_sel == `JUMP_SEL)) ? {2'd0, lit_op} : add_output;
 
     // Literal/Combo operand logic
     always@(*) begin
