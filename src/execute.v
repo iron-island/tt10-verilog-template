@@ -3,6 +3,7 @@ module execute(
     input wire             clk,
     input wire             rst_n,
     input wire [2:0]       operand_id_reg,
+    input wire [3:0]       instr_ptr_id_reg,
     input wire [1:0]       op1_sel,
     input wire [1:0]       op2_sel,
     input wire [1:0]       operation_sel,
@@ -17,7 +18,7 @@ module execute(
 
     // Combo and literal operand
     reg  [47:0]   combo_op;
-    wire [47:0]   lit_op;
+    wire [2:0]    lit_op;
 
     // Combo operand used for shift, limited to 6 bits = ceil(log2(48))
     //   since register A can only be shifted by a maximum of 48 bits,
@@ -29,7 +30,7 @@ module execute(
     wire [47:0]   xor_output;
     wire [2:0]    mod_output;
     wire [4:0]    add_output;
-    wire [2:0]    jump_output;
+    wire [3:0]    jump_output;
 
     // Selected operands
     reg [47:0]    op1;
@@ -68,15 +69,15 @@ module execute(
     end
 
     // Combo or literal operand
-    assign lit_op = {44'd0, operand_id_reg};
+    assign lit_op         = operand_id_reg;
     assign shift_combo_op = combo_op[5:0];
 
     // Operations
     assign shift_output = reg_A >> shift_combo_op;
     assign xor_output   = op1 ^ op2;
     assign mod_output   = op1[2:0];
-    assign add_output   = instr_ptr + 4'd2;
-    assign jump_output  = (reg_A != 48'd0) ? lit_op : add_output[3:0];
+    assign add_output   = instr_ptr_id_reg + 4'd2;
+    assign jump_output  = ((reg_A != 48'd0) && (operation_sel == `JUMP_SEL)) ? {1'b0, lit_op} : add_output[3:0];
 
     assign halt = add_output[4];
 
@@ -86,7 +87,7 @@ module execute(
             3'd0,
             3'd1,
             3'd2,
-            3'd3    : combo_op = lit_op;
+            3'd3    : combo_op = {44'd0, lit_op};
             3'd4    : combo_op = reg_A;
             3'd5    : combo_op = reg_B;
             3'd6    : combo_op = reg_C;
@@ -99,7 +100,7 @@ module execute(
         op1 = `COMBO_OP_SEL;
         case (op1_sel)
             `COMBO_OP_SEL : op1 = combo_op;
-            `LIT_OP_SEL   : op1 = lit_op;
+            `LIT_OP_SEL   : op1 = {44'd0, lit_op};
             `REG_B_SEL    : op1 = reg_B;
             `REG_C_SEL    : op1 = reg_C;
         endcase
@@ -110,7 +111,7 @@ module execute(
         op2 = `COMBO_OP_SEL;
         case (op2_sel)
             `COMBO_OP_SEL : op2 = combo_op;
-            `LIT_OP_SEL   : op2 = {44'd0, operand_id_reg};
+            `LIT_OP_SEL   : op2 = {44'd0, lit_op};
             `REG_B_SEL    : op2 = reg_B;
             `REG_C_SEL    : op2 = reg_C;
         endcase

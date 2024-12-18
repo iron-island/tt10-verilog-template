@@ -6,8 +6,9 @@ module instruction_fetch(
     input wire [3:0]       instr_ptr,
     
     // Outputs
-    output reg [2:0]      opcode,
-    output reg [2:0]      operand
+    output reg [2:0]       opcode,
+    output reg [2:0]       operand,
+    output reg [3:0]       instr_ptr_if_reg
 );
 
 
@@ -54,9 +55,13 @@ module instruction_fetch(
         if (!rst_n) begin
             opcode  <= 3'b000;
             operand <= 3'b000;
+            
+            instr_ptr_if_reg <= 4'd0;
         end else if (!halt) begin
             opcode  <= next_opcode;
             operand <= next_operand;
+
+            instr_ptr_if_reg <= instr_ptr;
         end
     end
 

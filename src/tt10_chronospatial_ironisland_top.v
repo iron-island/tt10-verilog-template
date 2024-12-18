@@ -67,9 +67,11 @@ module tt10_chronospatial_ironisland_top(
     // instruction_fetch outputs
     wire [2:0]    opcode;
     wire [2:0]    operand;
+    wire [3:0]    instr_ptr_if_reg;
 
     // instruction_decode outputs
     wire [2:0]    operand_id_reg;
+    wire [3:0]    instr_ptr_id_reg;
     wire [1:0]    op1_sel;
     wire [1:0]    op2_sel;
     wire [1:0]    operation_sel;
@@ -88,7 +90,8 @@ module tt10_chronospatial_ironisland_top(
 
         // Outputs
         .opcode            (opcode),
-        .operand           (operand)
+        .operand           (operand),
+        .instr_ptr_if_reg  (instr_ptr_if_reg)
     );
 
     // Pipeline stage 2: Instruction decode
@@ -99,9 +102,11 @@ module tt10_chronospatial_ironisland_top(
         .halt              (halt),
         .opcode            (opcode),
         .operand           (operand),
+        .instr_ptr_if_reg  (instr_ptr_if_reg),
 
         // Outputs
         .operand_id_reg    (operand_id_reg),
+        .instr_ptr_id_reg  (instr_ptr_id_reg),
         .op1_sel           (op1_sel),
         .op2_sel           (op2_sel),
         .operation_sel     (operation_sel),
@@ -114,6 +119,7 @@ module tt10_chronospatial_ironisland_top(
         .clk               (clk),
         .rst_n             (rst_n),
         .operand_id_reg    (operand_id_reg),
+        .instr_ptr_id_reg  (instr_ptr_id_reg),
         .op1_sel           (op1_sel),
         .op2_sel           (op2_sel),
         .operation_sel     (operation_sel),
