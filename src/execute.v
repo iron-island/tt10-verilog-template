@@ -1,7 +1,7 @@
 module execute(
     // Inputs
     input         clk,
-    input         rstn,
+    input         rst_n,
     input [2:0]   operand_id_reg,
     input [1:0]   op1_sel,
     input [1:0]   op2_sel,
@@ -40,16 +40,22 @@ module execute(
     wire [47:0]   op2;
 
     // Registers
-    always@(posedge clk or negedge rstn) begin
-        if (!rstn) begin
+    always@(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
             instr_ptr <= 3'd0;
 
+            reg_A <= `REG_A_RST_VAL;
+            reg_B <= `REG_B_RST_VAL;
+            reg_C <= `REG_C_RST_VAL;
+
+            reg_out   <= 3'd0;
+            out_valid <= 1'b0;
         end else if (!halt) begin
             instr_ptr <= jump_output;
 
-            reg_A   <= (reg_wr_en[0]) ? result : reg_A;
-            reg_B   <= (reg_wr_en[1]) ? result : reg_B;
-            reg_C   <= (reg_wr_en[2]) ? result : reg_C;
+            reg_A <= (reg_wr_en[0]) ? result : reg_A;
+            reg_B <= (reg_wr_en[1]) ? result : reg_B;
+            reg_C <= (reg_wr_en[2]) ? result : reg_C;
 
             // Program output logic
             reg_out   <= (reg_wr_en[3]) ? result[2:0] : reg_out;

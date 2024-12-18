@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2024 Aldrin Rolf Ison
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+`default_nettype none
+
 // Register write enable
 // One-hot encoded to avoid needing another decoder in the execute stage
 `define NO_WR_EN    5'b00000
@@ -21,17 +28,45 @@
 `define MOD_SEL   2'd2;
 `define JUMP_SEL  2'd3;
 
-module tt10_chronospatial_ironisland_top(
-    // Inputs
-    input         clk,
-    input         rstn,
-    input [2:0]   program [3:0],
+// TODO: Remove and design a way to dynamically add the initial register values and program
+//       Just included to obfuscate actual values since it corresponds to Advent of Code inputs
+//         which are copyrighted
+`include "reg_prog_init.h"
 
-    // Outputs
-    output        halt,
-    output [2:0]  reg_out,
-    output        out_valid
+module tt10_chronospatial_ironisland_top(
+    //// Inputs
+    //input         clk,
+    //input         rst_n,
+    //input [2:0]   program [3:0],
+
+    //// Outputs
+    //output        halt,
+    //output [2:0]  reg_out,
+    //output        out_valid
+    input  wire [7:0] ui_in,    // Dedicated inputs
+    output wire [7:0] uo_out,   // Dedicated outputs
+    input  wire [7:0] uio_in,   // IOs: Input path
+    output wire [7:0] uio_out,  // IOs: Output path
+    output wire [7:0] uio_oe,   // IOs: Enable path (active high: 0=input, 1=output)
+    input  wire       ena,      // always 1 when the design is powered, so you can ignore it
+    input  wire       clk,      // clock
+    input  wire       rst_n     // reset_n - low to reset
 );
+    // Internal wires to be assigned to outputs
+    wire [2:0]    reg_out;
+    wire          out_valid;
+    wire          halt;
+
+    // TT: All output pins must be assigned. If not used, assign to 0.
+    assign uo_out[2:0] = reg_out;
+    assign uo_out[3]   = out_valid;
+    assign uo_out[4]   = halt;
+    assign uo_out[7:5] = 0;
+    assign uio_out     = 0;
+    assign uio_oe      = 0;
+
+    // TT: List all unused inputs to prevent warnings
+    wire _unused = &{ena};
 
     // instruction_fetch outputs
     wire [2:0]    opcode;
@@ -51,9 +86,8 @@ module tt10_chronospatial_ironisland_top(
     instruction_fetch u_if(
         // Inputs
         .clk               (clk),
-        .rstn              (rstn),
+        .rst_n             (rst_n),
         .halt              (halt),
-        .program           (program),
         .instr_ptr         (instr_ptr),
         .halt              (halt),
 
@@ -66,7 +100,7 @@ module tt10_chronospatial_ironisland_top(
     instruction_decode u_id(
         // Inputs
         .clk               (clk),
-        .rstn              (rstn),
+        .rst_n             (rst_n),
         .halt              (halt),
         .opcode            (opcode),
         .operand           (operand),
@@ -83,7 +117,7 @@ module tt10_chronospatial_ironisland_top(
     execute u_ex(
         // Inputs
         .clk               (clk),
-        .rstn              (rstn),
+        .rst_n             (rst_n),
         .operand_id_reg    (operand_id_reg),
         .op1_sel           (op1_sel),
         .op2_sel           (op2_sel),

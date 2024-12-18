@@ -37,9 +37,9 @@ pinout:
   uo[2]: "uio_out[2]"
   uo[3]: "uio_out[3]"
   uo[4]: "uio_out[4]"
-  uo[5]: "uio_out[5]"
-  uo[6]: "uio_out[6]"
-  uo[7]: "uio_out[7]"
+  uo[5]: ""
+  uo[6]: ""
+  uo[7]: ""
 
   # Bidirectional pins
   uio[0]: ""

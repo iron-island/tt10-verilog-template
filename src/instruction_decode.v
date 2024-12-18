@@ -11,7 +11,7 @@
 module instruction_decode(
     // Inputs
     input         clk,
-    input         rstn,
+    input         rst_n,
     input         halt,
     input [2:0]   opcode,
     input [2:0]   operand,
@@ -24,8 +24,8 @@ module instruction_decode(
     output [4:0]  reg_wr_en,
 );
 
-    always@(posedge clk or negedge rstn) begin
-        if (!rstn) begin
+    always@(posedge clk or negedge rst_n) begin
+        if (!rst_n) begin
             operand_id_reg <= 48'd0;
 
             op1_sel        <= 2'd0;
