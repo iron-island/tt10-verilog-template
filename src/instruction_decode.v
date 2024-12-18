@@ -10,19 +10,24 @@
 
 module instruction_decode(
     // Inputs
-    input         clk,
-    input         rst_n,
-    input         halt,
-    input [2:0]   opcode,
-    input [2:0]   operand,
+    input wire             clk,
+    input wire             rst_n,
+    input wire             halt,
+    input wire [2:0]       opcode,
+    input wire [2:0]       operand,
     
     // Outputs
-    output [2:0]  operand_id_reg,
-    output [1:0]  op1_sel,
-    output [1:0]  op2_sel,
-    output [1:0]  operation_sel,
-    output [4:0]  reg_wr_en,
+    output reg [2:0]       operand_id_reg,
+    output reg [1:0]       op1_sel,
+    output reg [1:0]       op2_sel,
+    output reg [1:0]       operation_sel,
+    output reg [4:0]       reg_wr_en
 );
+
+    reg [1:0] next_op1_sel;
+    reg [1:0] next_op2_sel;
+    reg [1:0] next_operation_sel;
+    reg [4:0] next_reg_wr_en;
 
     always@(posedge clk or negedge rst_n) begin
         if (!rst_n) begin
@@ -54,7 +59,7 @@ module instruction_decode(
         next_operation_sel = operation_sel;
         next_reg_wr_en     = `NO_WR_EN;
 
-        case (opcode) begin
+        case (opcode)
             `ADV : begin
                 // Decode shifter -> A
                 //next_op1_sel       = op1_sel; // not used
@@ -64,14 +69,14 @@ module instruction_decode(
             end
             `BXL : begin
                 // Decode B ^ LIT_OP -> B
-                next_op1_sel       = `REG_B_OP;
-                next_op2_sel       = `REG_O_OP;
+                next_op1_sel       = `REG_B_SEL;
+                next_op2_sel       = `LIT_OP_SEL;
                 next_operation_sel = `XOR_SEL;
                 next_reg_wr_en     = `REG_B_WR_EN;
             end
             `BST : begin
                 // Decode B mod 8 -> B
-                next_op1_sel       = `REG_B_OP;
+                next_op1_sel       = `REG_B_SEL;
                 //next_op2_sel       = op2_sel; // not used
                 next_operation_sel = `MOD_SEL;
                 next_reg_wr_en     = `REG_B_WR_EN;
@@ -85,16 +90,16 @@ module instruction_decode(
             end
             `BXC : begin
                 // Decode B ^ C -> B
-                next_op1_sel       = `REG_B_OP;
-                next_op2_sel       = `REG_C_OP;
+                next_op1_sel       = `REG_B_SEL;
+                next_op2_sel       = `REG_C_SEL;
                 next_operation_sel = `XOR_SEL;
                 next_reg_wr_en     = `REG_B_WR_EN;
             end
             `OUT : begin
                 // Decode COMBO_OP mod 8 -> out
-                next_op1_sel       = `REG_O_OP;
+                next_op1_sel       = `COMBO_OP_SEL;
                 //next_op2_sel       = op2_sel; // not used
-                next_operation_sel = `MODE_SEL;
+                next_operation_sel = `MOD_SEL;
                 next_reg_wr_en     = `REG_O_WR_EN;
             end
             `BDV : begin
@@ -104,14 +109,14 @@ module instruction_decode(
                 next_operation_sel = `SHIFT_SEL;
                 next_reg_wr_en     = `REG_B_WR_EN;
             end
-            `BCV : begin
+            `CDV : begin
                 // Decode shifter -> C
                 //next_op1_sel       = op1_sel; // not used
                 //next_op2_sel       = op2_sel; // not used
                 next_operation_sel = `SHIFT_SEL;
                 next_reg_wr_en     = `REG_C_WR_EN;
             end
-        end
+        endcase
     end
 
 endmodule

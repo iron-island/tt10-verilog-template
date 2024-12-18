@@ -1,26 +1,23 @@
 module execute(
     // Inputs
-    input         clk,
-    input         rst_n,
-    input [2:0]   operand_id_reg,
-    input [1:0]   op1_sel,
-    input [1:0]   op2_sel,
-    input [1:0]   operation_sel,
-    input [4:0]   reg_wr_en,
-    input [47:0]  reg_A,
-    input [47:0]  reg_B,
-    input [47:0]  reg_C,
+    input wire             clk,
+    input wire             rst_n,
+    input wire [2:0]       operand_id_reg,
+    input wire [1:0]       op1_sel,
+    input wire [1:0]       op2_sel,
+    input wire [1:0]       operation_sel,
+    input wire [4:0]       reg_wr_en,
     
     // Outputs
-    output [3:0]  instr_ptr,
-    output        halt,
-    output [2:0]  last_out,
-    output [47:0] reg_out,
-    output        out_valid
+    output reg [3:0]       instr_ptr,
+    output reg             halt,
+    output reg [2:0]       last_out,
+    output reg [47:0]      reg_out,
+    output reg             out_valid
 );
 
     // Combo and literal operand
-    wire [47:0]   combo_op;
+    reg  [47:0]   combo_op;
     wire [47:0]   lit_op;
 
     // Combo operand used for shift, limited to 6 bits = ceil(log2(48))
@@ -36,8 +33,16 @@ module execute(
     wire [2:0]    jump_output;
 
     // Selected operands
-    wire [47:0]   op1;
-    wire [47:0]   op2;
+    reg [47:0]    op1;
+    reg [47:0]    op2;
+
+    // Result after operation mux
+    reg [47:0]    result;
+
+    // Registers
+    reg [47:0]    reg_A;
+    reg [47:0]    reg_B;
+    reg [47:0]    reg_C;
 
     // Registers
     always@(posedge clk or negedge rst_n) begin
@@ -78,48 +83,48 @@ module execute(
 
     // Literal/Combo operand logic
     always@(*) begin
-        case (operand_id_reg) begin
-            2'd0,
-            2'd1,
-            2'd2,
-            2'd3    : combo_op = lit_op;
-            2'd4    : combo_op = reg_A;
-            2'd5    : combo_op = reg_B;
-            2'd6    : combo_op = reg_C;
+        case (operand_id_reg)
+            3'd0,
+            3'd1,
+            3'd2,
+            3'd3    : combo_op = lit_op;
+            3'd4    : combo_op = reg_A;
+            3'd5    : combo_op = reg_B;
+            3'd6    : combo_op = reg_C;
             default : combo_op = 48'd0; // unused, so arbitrarily set to 0
-        end
+        endcase
     end
 
     // Operand 1 select logic
     always@(*) begin
         op1 = `COMBO_OP_SEL;
-        case (op1_sel) begin
+        case (op1_sel)
             `COMBO_OP_SEL : op1 = combo_op;
             `LIT_OP_SEL   : op1 = lit_op;
-            `REG_B_OP_SEL : op1 = reg_B;
-            `REG_C_OP_SEL : op1 = reg_C;
+            `REG_B_SEL    : op1 = reg_B;
+            `REG_C_SEL    : op1 = reg_C;
         endcase
     end
 
     // Operand 2 select logic
     always@(*) begin
         op2 = `COMBO_OP_SEL;
-        case (op2_sel) begin
+        case (op2_sel)
             `COMBO_OP_SEL : op2 = combo_op;
             `LIT_OP_SEL   : op2 = {44'd0, operand_id_reg};
-            `REG_B_OP_SEL : op2 = reg_B;
-            `REG_C_OP_SEL : op2 = reg_C;
+            `REG_B_SEL    : op2 = reg_B;
+            `REG_C_SEL    : op2 = reg_C;
         endcase
     end
 
-    // Operator results logic
+    // Operator mux result logic
     always@(*) begin
-        case (operation_sel) begin
-            `SHIFT_SEL : results = shift_out;
-            `XOR_SEL   : results = xor_out;
-            `MOD_SEL   : results = {44'd0, mod_out};
-            default    : results = 48'd0;
-        end
+        case (operation_sel)
+            `SHIFT_SEL : result = shift_output;
+            `XOR_SEL   : result = xor_output;
+            `MOD_SEL   : result = {44'd0, mod_output};
+            default    : result = 48'd0;
+        endcase
     end
 
 endmodule

@@ -23,26 +23,22 @@
 `define REG_C_SEL    2'd3
 
 // Operation select
-`define SHIFT_SEL 2'd0;
-`define XOR_SEL   2'd1;
-`define MOD_SEL   2'd2;
-`define JUMP_SEL  2'd3;
+`define SHIFT_SEL 2'd0
+`define XOR_SEL   2'd1
+`define MOD_SEL   2'd2
+`define JUMP_SEL  2'd3
 
 // TODO: Remove and design a way to dynamically add the initial register values and program
 //       Just included to obfuscate actual values since it corresponds to Advent of Code inputs
 //         which are copyrighted
 `include "reg_prog_init.h"
 
-module tt10_chronospatial_ironisland_top(
-    //// Inputs
-    //input         clk,
-    //input         rst_n,
-    //input [2:0]   program [3:0],
+// TODO: Add .f file instead to be read in testbench and OpenLANE setup
+`include "instruction_fetch.v"
+`include "instruction_decode.v"
+`include "execute.v"
 
-    //// Outputs
-    //output        halt,
-    //output [2:0]  reg_out,
-    //output        out_valid
+module tt10_chronospatial_ironisland_top(
     input  wire [7:0] ui_in,    // Dedicated inputs
     output wire [7:0] uo_out,   // Dedicated outputs
     input  wire [7:0] uio_in,   // IOs: Input path
@@ -66,7 +62,7 @@ module tt10_chronospatial_ironisland_top(
     assign uio_oe      = 0;
 
     // TT: List all unused inputs to prevent warnings
-    wire _unused = &{ena};
+    wire _unused = &{ena, uio_in};
 
     // instruction_fetch outputs
     wire [2:0]    opcode;
@@ -89,7 +85,6 @@ module tt10_chronospatial_ironisland_top(
         .rst_n             (rst_n),
         .halt              (halt),
         .instr_ptr         (instr_ptr),
-        .halt              (halt),
 
         // Outputs
         .opcode            (opcode),
@@ -110,7 +105,7 @@ module tt10_chronospatial_ironisland_top(
         .op1_sel           (op1_sel),
         .op2_sel           (op2_sel),
         .operation_sel     (operation_sel),
-        .reg_wr_en         (reg_wr_en),
+        .reg_wr_en         (reg_wr_en)
     );
 
     // Pipeline stage 3: Execute
@@ -122,7 +117,7 @@ module tt10_chronospatial_ironisland_top(
         .op1_sel           (op1_sel),
         .op2_sel           (op2_sel),
         .operation_sel     (operation_sel),
-        .reg_addr          (reg_addr),
+        .reg_wr_en         (reg_wr_en),
 
         // Outputs
         .instr_ptr         (instr_ptr)
