@@ -120,7 +120,10 @@ module tt10_chronospatial_ironisland_top(
         .reg_wr_en         (reg_wr_en),
 
         // Outputs
-        .instr_ptr         (instr_ptr)
+        .instr_ptr         (instr_ptr),
+        .halt              (halt),
+        .reg_out           (reg_out),
+        .out_valid         (out_valid)
     );
 
 endmodule

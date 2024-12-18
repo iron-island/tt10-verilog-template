@@ -11,8 +11,7 @@ module execute(
     // Outputs
     output reg [3:0]       instr_ptr,
     output reg             halt,
-    output reg [2:0]       last_out,
-    output reg [47:0]      reg_out,
+    output reg [2:0]       reg_out,
     output reg             out_valid
 );
 
