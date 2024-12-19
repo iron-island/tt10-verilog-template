@@ -5,9 +5,35 @@ import cocotb
 from cocotb.clock import Clock
 from cocotb.triggers import ClockCycles
 
+FILENAME = "./txt/example17.txt"
+
+def parse_input(filename):
+
+    with open(filename) as f:
+        input_list = f.read().split("\n")
+
+    reg_A = int(input_list[0].split(": ")[1])
+    reg_B = int(input_list[1].split(": ")[1])
+    reg_C = int(input_list[2].split(": ")[1])
+
+    program_list = [int(i) for i in input_list[4].split(": ")[1].split(",")]
+
+    return reg_A, reg_B, reg_C, program_list
 
 @cocotb.test()
 async def test_project(dut):
+    # Parse inputs
+    dut._log.info(f'Parsing {FILENAME}...')
+    reg_A, reg_B, reg_C, program_list = parse_input(FILENAME)
+    dut._log.info(f'Parsed expected initial register values and program:')
+    dut._log.info(f'====================================================')
+    dut._log.info(f'Register A: {reg_A}')
+    dut._log.info(f'Register B: {reg_B}')
+    dut._log.info(f'Register C: {reg_C}')
+    dut._log.info(f'')
+    dut._log.info(f'Program: {program_list}')
+    dut._log.info(f'====================================================')
+
     dut._log.info("Start")
 
     # Set the clock period to 1 us (1 MHz)
@@ -30,8 +56,8 @@ async def test_project(dut):
     dut.ui_in.value = 20
     dut.uio_in.value = 30
 
-    # Wait for 25 clock cycles to see the output values
-    await ClockCycles(dut.clk, 25)
+    # Wait for 400 clock cycles to see the output values
+    await ClockCycles(dut.clk, 400)
 
     # The following assersion is just an example of how to check the output values.
     # Change it to match the actual expected output of your module:
