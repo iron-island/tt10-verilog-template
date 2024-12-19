@@ -20,19 +20,81 @@ def parse_input(filename):
 
     return reg_A, reg_B, reg_C, program_list
 
+def get_combo_op(operand, A, B, C):
+    if (operand in [0, 1, 2, 3]):
+        return operand
+    elif (operand == 4):
+        return A
+    elif (operand == 5):
+        return B
+    elif (operand == 6):
+        return C
+    else:
+        # Invalid operand
+        return 0
+
+def run_instruction(opcode, operand, A, B, C, ip):
+    out_valid = False
+    program_out = 0
+    if (opcode in [0, 6, 7]): # adv, bdv, cdv
+        combop = get_combo_op(operand, A, B, C)
+        
+        result = int(A/(2**combop))
+        if (opcode == 0):
+            A = result
+        elif (opcode == 6):
+            B = result
+        elif (opcode == 7):
+            C = result
+    elif (opcode in [1, 4]): # bitwise XOR
+        if (opcode == 1):
+            B = B ^ operand
+        elif (opcode == 4):
+            B = B ^ C
+    elif (opcode == 2): # modulo 8
+        combop = get_combo_op(operand, A, B, C)
+        B = combop % 8
+    elif (opcode == 5): # out
+        combop = get_combo_op(operand, A, B, C)
+        program_out = combop % 8
+        out_valid = True
+
+    # Update instruction pointer
+    if (opcode == 3) and (A > 0):
+        ip = operand
+    else:
+        ip += 2
+
+    return A, B, C, ip, program_out, out_valid
+
 @cocotb.test()
 async def test_project(dut):
     # Parse inputs
-    dut._log.info(f'Parsing {FILENAME}...')
+    print(f'====================================================')
+    print(f'Parsing {FILENAME}...')
     reg_A, reg_B, reg_C, program_list = parse_input(FILENAME)
-    dut._log.info(f'Parsed expected initial register values and program:')
-    dut._log.info(f'====================================================')
-    dut._log.info(f'Register A: {reg_A}')
-    dut._log.info(f'Register B: {reg_B}')
-    dut._log.info(f'Register C: {reg_C}')
-    dut._log.info(f'')
-    dut._log.info(f'Program: {program_list}')
-    dut._log.info(f'====================================================')
+    print(f'Parsed expected initial register values and program:')
+    print(f'Register A: {reg_A}')
+    print(f'Register B: {reg_B}')
+    print(f'Register C: {reg_C}')
+    print(f'')
+    print(f'Program: {program_list}')
+
+    # Emulate program to get expected output
+    print(f'====================================================')
+    print(f'Emulating program running to get expected output...')
+    ip = 0
+    program_out_list = []
+    while (ip < len(program_list)):
+        opcode  = program_list[ip]
+        operand = program_list[ip+1]
+
+        reg_A, reg_B, reg_C, ip, program_out, out_valid = run_instruction(opcode, operand, reg_A, reg_B, reg_C, ip)
+
+        if (out_valid):
+            program_out_list.append(program_out)
+    print(f'Expected program output: {program_out_list}')
+    print(f'====================================================')
 
     dut._log.info("Start")
 
