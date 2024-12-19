@@ -71,6 +71,21 @@ def get_reg_bit(reg, bit):
     # return reg[bit]
     return (reg >> bit) & 1
 
+def update_bit(signal, bitval, bitstart, bitend=None):
+    '''
+    Wrapper function for updating bits/slices via a read-modify-write sequence
+    Ref: https://github.com/cocotb/cocotb/issues/4274#issuecomment-2537077592
+    '''
+    temp = signal
+    if (bitend == None):
+        temp[bitstart] = bitval
+    else:
+        temp[bitstart:bitend] = bitval
+
+    print(temp)
+
+    return temp
+
 @cocotb.test()
 async def test_project(dut):
     # Parse inputs
@@ -112,8 +127,7 @@ async def test_project(dut):
     # Reset
     dut._log.info("Reset")
     dut.ena.value = 1
-    dut.ui_in.value = 0
-    dut.ui_in.value[3] = 1 # init_regs
+    dut.ui_in.value = (1 << 3) # init_regs
     dut.uio_in.value = 0
     dut.rst_n.value = 0
     await ClockCycles(dut.clk, 2)
@@ -124,21 +138,21 @@ async def test_project(dut):
 
     # Initialize registers
     dut._log.info("Initializing registers")
-    dut.ui_in.value[3] = 1 # init_regs
+    dut.ui_in.value = (1 << 3) # init_regs
     for bit in range(47, -1, -1):
         # Set values to be shifted in to register LSBs
-        dut.ui_in.value[0] = get_reg_bit(init_A, bit)
-        dut.ui_in.value[1] = get_reg_bit(init_B, bit)
-        dut.ui_in.value[2] = get_reg_bit(init_C, bit)
+        temp            = update_bit(dut.ui_in.value, get_reg_bit(init_A, bit), 0)
+        temp            = update_bit(temp, get_reg_bit(init_B, bit), 1)
+        dut.ui_in.value = update_bit(temp, get_reg_bit(init_C, bit), 2)
 
         # Toggle clock
         await ClockCycles(dut.clk, 1)
-    dut.ui_in.value[3] = 0 # init_regs
+    dut.ui_in.value = update_bit(dut.ui_in.value, 0, 3)
 
     # Input opcodes and operands
     # Loop until halt_ex from uo_out[4] is asserted
     out_counter = 0
-    while (dut.uo_out.value[4]):
+    while (not dut.uo_out.value[4]):
         instr_ptr = int(dut.uo_out.value[7:5])
 
         # TODO: design should handle instructions outside of the program,
