@@ -12,13 +12,13 @@ def parse_input(filename):
     with open(filename) as f:
         input_list = f.read().split("\n")
 
-    reg_A = int(input_list[0].split(": ")[1])
-    reg_B = int(input_list[1].split(": ")[1])
-    reg_C = int(input_list[2].split(": ")[1])
+    init_A = int(input_list[0].split(": ")[1])
+    init_B = int(input_list[1].split(": ")[1])
+    init_C = int(input_list[2].split(": ")[1])
 
     program_list = [int(i) for i in input_list[4].split(": ")[1].split(",")]
 
-    return reg_A, reg_B, reg_C, program_list
+    return init_A, init_B, init_C, program_list
 
 def get_combo_op(operand, A, B, C):
     if (operand in [0, 1, 2, 3]):
@@ -67,16 +67,20 @@ def run_instruction(opcode, operand, A, B, C, ip):
 
     return A, B, C, ip, program_out, out_valid
 
+def get_reg_bit(reg, bit):
+    # return reg[bit]
+    return (reg >> bit) & 1
+
 @cocotb.test()
 async def test_project(dut):
     # Parse inputs
     print(f'====================================================')
     print(f'Parsing {FILENAME}...')
-    reg_A, reg_B, reg_C, program_list = parse_input(FILENAME)
+    init_A, init_B, init_C, program_list = parse_input(FILENAME)
     print(f'Parsed expected initial register values and program:')
-    print(f'Register A: {reg_A}')
-    print(f'Register B: {reg_B}')
-    print(f'Register C: {reg_C}')
+    print(f'Register A: {init_A}')
+    print(f'Register B: {init_B}')
+    print(f'Register C: {init_C}')
     print(f'')
     print(f'Program: {program_list}')
 
@@ -85,11 +89,14 @@ async def test_project(dut):
     print(f'Emulating program running to get expected output...')
     ip = 0
     program_out_list = []
+    A = init_A
+    B = init_B
+    C = init_C
     while (ip < len(program_list)):
         opcode  = program_list[ip]
         operand = program_list[ip+1]
 
-        reg_A, reg_B, reg_C, ip, program_out, out_valid = run_instruction(opcode, operand, reg_A, reg_B, reg_C, ip)
+        A, B, C, ip, program_out, out_valid = run_instruction(opcode, operand, A, B, C, ip)
 
         if (out_valid):
             program_out_list.append(program_out)
@@ -106,26 +113,57 @@ async def test_project(dut):
     dut._log.info("Reset")
     dut.ena.value = 1
     dut.ui_in.value = 0
+    dut.ui_in.value[3] = 1 # init_regs
     dut.uio_in.value = 0
     dut.rst_n.value = 0
     await ClockCycles(dut.clk, 2)
+    dut._log.info("Deasserting reset")
     dut.rst_n.value = 1
 
     dut._log.info("Test project behavior")
 
-    # Set the input values you want to test
-    # TODO: Modify once inputs are actually used
-    dut.ui_in.value = 20
-    dut.uio_in.value = 30
+    # Initialize registers
+    dut._log.info("Initializing registers")
+    dut.ui_in.value[3] = 1 # init_regs
+    for bit in range(47, -1, -1):
+        # Set values to be shifted in to register LSBs
+        dut.ui_in.value[0] = get_reg_bit(init_A, bit)
+        dut.ui_in.value[1] = get_reg_bit(init_B, bit)
+        dut.ui_in.value[2] = get_reg_bit(init_C, bit)
 
-    # Wait for 400 clock cycles to see the output values
-    await ClockCycles(dut.clk, 400)
+        # Toggle clock
+        await ClockCycles(dut.clk, 1)
+    dut.ui_in.value[3] = 0 # init_regs
 
-    # The following assersion is just an example of how to check the output values.
-    # Change it to match the actual expected output of your module:
-    # TODO: Check values without revealing actual Advent of Code output
-    #       Expected to fail as of now     
-    assert dut.uo_out.value == 50
+    # Input opcodes and operands
+    # Loop until halt_ex from uo_out[4] is asserted
+    out_counter = 0
+    while (dut.uo_out.value[4]):
+        instr_ptr = int(dut.uo_out.value[7:5])
 
-    # Keep testing the module by changing the input values, waiting for
-    # one or more clock cycles, and asserting the expected output values.
+        # TODO: design should handle instructions outside of the program,
+        #       though testbench would still be modified since the design
+        #       does not know when the program already overflowed
+        if (instr_ptr < len(program_list)):
+            opcode  = program_list[instr_ptr]
+            operand = program_list[instr_ptr+1]
+        else:
+            opcode = 0
+            operand = 0
+
+        # Input opcode and operand
+        dut.ui_in.value = (operand << 4) + opcode
+
+        # Toggle clock
+        await ClockCycles(dut.clk, 1)
+
+        # Check output value
+        if (dut.uo_out.value[3]):
+            dut._log.info(f'Design signaled output is valid with index = {out_counter}')
+            dut._log.info(f'Expected = {int(dut.uo_out.value[2:0])}')
+            dut._log.info(f'Actual   = {program_out_list[out_counter]}')
+            assert dut.uo_out.value[2:0] == program_out_list[out_counter]
+            out_counter += 1
+
+    # Check that expected number of outputs matches actual number of outputs
+    assert len(program_out_list) == out_counter
