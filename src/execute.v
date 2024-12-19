@@ -2,6 +2,10 @@ module execute(
     // Inputs
     input wire             clk,
     input wire             rst_n,
+    input wire             A_lsb_opcode_0,
+    input wire             B_lsb_opcode_1,
+    input wire             C_lsb_opcode_2,
+    input wire             init_regs,
     input wire [2:0]       operand_id_reg,
     input wire [1:0]       op1_sel,
     input wire [1:0]       op2_sel,
@@ -57,12 +61,16 @@ module execute(
 
             instr_ptr <= 5'd0;
 
-            reg_A <= `REG_A_RST_VAL;
-            reg_B <= `REG_B_RST_VAL;
-            reg_C <= `REG_C_RST_VAL;
+            reg_A <= 48'd0;
+            reg_B <= 48'd0;
+            reg_C <= 48'd0;
 
             reg_out   <= 3'd0;
             out_valid <= 1'b0;
+        end else if (init_regs) begin
+            reg_A <= {reg_A[47:1], A_lsb_opcode_0};
+            reg_B <= {reg_B[47:1], B_lsb_opcode_1};
+            reg_C <= {reg_C[47:1], C_lsb_opcode_2};
         end else begin
             init_shift_reg <= {init_shift_reg[0], 1'b1};
             halt_shift_reg <= {halt_shift_reg[0], halt_if};

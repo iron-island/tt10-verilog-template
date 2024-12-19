@@ -28,11 +28,6 @@
 `define MOD_SEL   2'd2
 `define JUMP_SEL  2'd3
 
-// TODO: Remove and design a way to dynamically add the initial register values and program
-//       Just included to obfuscate actual values since it corresponds to Advent of Code inputs
-//         which are copyrighted
-`include "reg_prog_init.h"
-
 // TODO: Add .f file instead to be read in testbench and OpenLANE setup
 `include "instruction_fetch.v"
 `include "instruction_decode.v"
@@ -52,21 +47,34 @@ module tt10_chronospatial_ironisland_top(
     wire [2:0]    reg_out;
     wire          out_valid;
     wire          halt_ex;
+    wire [4:0]    instr_ptr;
 
     // TT: All output pins must be assigned. If not used, assign to 0.
     assign uo_out[2:0] = reg_out;
     assign uo_out[3]   = out_valid;
     assign uo_out[4]   = halt_ex;
-    assign uo_out[7:5] = 0;
+    assign uo_out[7:5] = instr_ptr[3:0];
     assign uio_out     = 0;
     assign uio_oe      = 0;
 
     // TT: List all unused inputs to prevent warnings
-    wire _unused = &{ena, uio_in};
+    wire _unused = &{ena, uio_in, ui_in[7]};
+
+    wire          A_lsb_opcode_0;
+    wire          B_lsb_opcode_1;
+    wire          C_lsb_opcode_2;
+    wire          init_regs;
+    wire [2:0]    operand;
+
+    assign A_lsb_opcode_0 = ui_in[0];
+    assign B_lsb_opcode_1 = ui_in[1];
+    assign C_lsb_opcode_2 = ui_in[2];
+    assign init_regs      = ui_in[3];
+    assign operand        = ui_in[6:4];
 
     // instruction_fetch outputs
-    wire [2:0]    opcode;
-    wire [2:0]    operand;
+    wire [2:0]    opcode_if_reg;
+    wire [2:0]    operand_if_reg;
 
     // instruction_decode outputs
     wire [2:0]    operand_id_reg;
@@ -76,7 +84,6 @@ module tt10_chronospatial_ironisland_top(
     wire [4:0]    reg_wr_en;
 
     // execute outputs
-    wire [3:0]    instr_ptr;
     wire          halt_if;
     wire          halt_id;
 
@@ -86,11 +93,13 @@ module tt10_chronospatial_ironisland_top(
         .clk               (clk),
         .rst_n             (rst_n),
         .halt_if           (halt_if),
-        .instr_ptr         (instr_ptr),
+        .init_regs         (init_regs),
+        .opcode            ({C_lsb_opcode_2, B_lsb_opcode_1, A_lsb_opcode_0}),
+        .operand           (operand),
 
         // Outputs
-        .opcode            (opcode),
-        .operand           (operand)
+        .opcode_if_reg     (opcode_if_reg),
+        .operand_if_reg    (operand_if_reg)
     );
 
     // Pipeline stage 2: Instruction decode
@@ -99,8 +108,8 @@ module tt10_chronospatial_ironisland_top(
         .clk               (clk),
         .rst_n             (rst_n),
         .halt_id           (halt_id),
-        .opcode            (opcode),
-        .operand           (operand),
+        .opcode_if_reg     (opcode_if_reg),
+        .operand_if_reg    (operand_if_reg),
 
         // Outputs
         .operand_id_reg    (operand_id_reg),
@@ -115,6 +124,10 @@ module tt10_chronospatial_ironisland_top(
         // Inputs
         .clk               (clk),
         .rst_n             (rst_n),
+        .A_lsb_opcode_0    (A_lsb_opcode_0),
+        .B_lsb_opcode_1    (B_lsb_opcode_1),
+        .C_lsb_opcode_2    (C_lsb_opcode_2),
+        .init_regs         (init_regs),
         .operand_id_reg    (operand_id_reg),
         .op1_sel           (op1_sel),
         .op2_sel           (op2_sel),

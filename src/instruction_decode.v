@@ -13,8 +13,8 @@ module instruction_decode(
     input wire             clk,
     input wire             rst_n,
     input wire             halt_id,
-    input wire [2:0]       opcode,
-    input wire [2:0]       operand,
+    input wire [2:0]       opcode_if_reg,
+    input wire [2:0]       operand_if_reg,
     
     // Outputs
     output reg [2:0]       operand_id_reg,
@@ -38,7 +38,7 @@ module instruction_decode(
             operation_sel  <= 2'd0;
             reg_wr_en      <= 2'd0;
         end else if (!halt_id) begin
-            operand_id_reg <= operand;
+            operand_id_reg <= operand_if_reg;
 
             op1_sel        <= next_op1_sel;
             op2_sel        <= next_op2_sel;
@@ -59,7 +59,7 @@ module instruction_decode(
         next_operation_sel = operation_sel;
         next_reg_wr_en     = `NO_WR_EN;
 
-        case (opcode)
+        case (opcode_if_reg)
             `ADV : begin
                 // Decode shifter -> A
                 //next_op1_sel       = op1_sel; // not used
