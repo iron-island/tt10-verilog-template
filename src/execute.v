@@ -68,9 +68,9 @@ module execute(
             reg_out   <= 3'd0;
             out_valid <= 1'b0;
         end else if (init_regs) begin
-            reg_A <= {reg_A[47:1], A_lsb_opcode_0};
-            reg_B <= {reg_B[47:1], B_lsb_opcode_1};
-            reg_C <= {reg_C[47:1], C_lsb_opcode_2};
+            reg_A <= {reg_A[46:0], A_lsb_opcode_0};
+            reg_B <= {reg_B[46:0], B_lsb_opcode_1};
+            reg_C <= {reg_C[46:0], C_lsb_opcode_2};
         end else begin
             init_shift_reg <= {init_shift_reg[0], 1'b1};
             halt_shift_reg <= {halt_shift_reg[0], halt_if};
