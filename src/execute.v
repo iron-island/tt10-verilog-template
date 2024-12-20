@@ -11,14 +11,17 @@ module execute(
     input wire [1:0]       op2_sel,
     input wire [1:0]       operation_sel,
     input wire [4:0]       reg_wr_en,
+    input wire [4:0]       instr_ptr,
     
     // Outputs
-    output reg [4:0]       instr_ptr,
+    output reg [4:0]       add_output,
     output wire            halt_if,
     output wire            halt_id,
     output wire            halt_ex,
     output reg [2:0]       reg_out,
-    output reg             out_valid
+    output reg             out_valid,
+    output wire            reg_A_nz,
+    output wire [2:0]      mod_output
 );
 
     // Combo and literal operand
@@ -33,8 +36,7 @@ module execute(
     // Operation outputs
     wire [47:0]   shift_output;
     wire [47:0]   xor_output;
-    wire [2:0]    mod_output;
-    wire [4:0]    add_output;
+    wire [4:0]    next_add_output;
     wire [4:0]    jump_output;
 
     // Selected operands
@@ -59,7 +61,7 @@ module execute(
             init_shift_reg <= 2'd0;
             halt_shift_reg <= 2'd0;
 
-            instr_ptr <= 5'd0;
+            add_output <= 5'd0;
 
             reg_A <= 48'd0;
             reg_B <= 48'd0;
@@ -75,7 +77,7 @@ module execute(
             init_shift_reg <= {init_shift_reg[0], 1'b1};
             halt_shift_reg <= {halt_shift_reg[0], halt_if};
 
-            instr_ptr <= jump_output;
+            add_output <= next_add_output;
 
             reg_A <= (reg_wr_en[0]) ? result : reg_A;
             reg_B <= (reg_wr_en[1]) ? result : reg_B;
@@ -100,8 +102,10 @@ module execute(
     assign shift_output = reg_A >> shift_combo_op;
     assign xor_output   = op1 ^ op2;
     assign mod_output   = op1[2:0];
-    assign add_output   = (init_shift_reg[1]) ? instr_ptr + 5'd2 : instr_ptr;
-    assign jump_output  = ((reg_A != 48'd0) && (operation_sel == `JUMP_SEL)) ? {2'd0, lit_op} : add_output;
+
+    assign reg_A_nz     = (reg_A != 48'd0);
+    assign next_add_output   = (init_shift_reg[1]) ? instr_ptr + 5'd2 : instr_ptr;
+    assign jump_output  = (reg_A_nz && (operation_sel == `JUMP_SEL)) ? {2'd0, lit_op} : next_add_output;
 
     // Literal/Combo operand logic
     always@(*) begin

@@ -1,13 +1,3 @@
-// Instruction opcodes
-`define ADV 3'd0
-`define BXL 3'd1
-`define BST 3'd2
-`define JNZ 3'd3
-`define BXC 3'd4
-`define OUT 3'd5
-`define BDV 3'd6
-`define CDV 3'd7
-
 module instruction_decode(
     // Inputs
     input wire             clk,

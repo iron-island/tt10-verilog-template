@@ -5,6 +5,16 @@
 
 `default_nettype none
 
+// Instruction opcodes
+`define ADV 3'd0
+`define BXL 3'd1
+`define BST 3'd2
+`define JNZ 3'd3
+`define BXC 3'd4
+`define OUT 3'd5
+`define BDV 3'd6
+`define CDV 3'd7
+
 // Register write enable
 // One-hot encoded to avoid needing another decoder in the execute stage
 `define NO_WR_EN    5'b00000
@@ -75,6 +85,7 @@ module tt10_chronospatial_ironisland_top(
     // instruction_fetch outputs
     wire [2:0]    opcode_if_reg;
     wire [2:0]    operand_if_reg;
+    wire          branch_predicted;
 
     // instruction_decode outputs
     wire [2:0]    operand_id_reg;
@@ -84,8 +95,15 @@ module tt10_chronospatial_ironisland_top(
     wire [4:0]    reg_wr_en;
 
     // execute outputs
+    wire [4:0]    add_output;
     wire          halt_if;
     wire          halt_id;
+    wire          reg_A_nz;
+    wire [2:0]    mod_output;
+
+    // Glue logic for jumping
+    // TODO: Reorganize instruction pointer and halt-related logic to IF stage
+    assign instr_ptr = (branch_predicted) ? {2'd0, operand} : add_output;
 
     // Pipeline stage 1: Instruction fetch
     instruction_fetch u_if(
@@ -96,10 +114,14 @@ module tt10_chronospatial_ironisland_top(
         .init_regs         (init_regs),
         .opcode            ({C_lsb_opcode_2, B_lsb_opcode_1, A_lsb_opcode_0}),
         .operand           (operand),
+        .reg_A_wr_en       (reg_wr_en[0]),
+        .reg_A_nz          (reg_A_nz),
+        .mod_output        (mod_output),
 
         // Outputs
         .opcode_if_reg     (opcode_if_reg),
-        .operand_if_reg    (operand_if_reg)
+        .operand_if_reg    (operand_if_reg),
+        .branch_predicted  (branch_predicted)
     );
 
     // Pipeline stage 2: Instruction decode
@@ -133,14 +155,17 @@ module tt10_chronospatial_ironisland_top(
         .op2_sel           (op2_sel),
         .operation_sel     (operation_sel),
         .reg_wr_en         (reg_wr_en),
+        .instr_ptr         (instr_ptr),
 
         // Outputs
-        .instr_ptr         (instr_ptr),
+        .add_output        (add_output),
         .halt_if           (halt_if),
         .halt_id           (halt_id),
         .halt_ex           (halt_ex),
         .reg_out           (reg_out),
-        .out_valid         (out_valid)
+        .out_valid         (out_valid),
+        .reg_A_nz          (reg_A_nz),
+        .mod_output        (mod_output)
     );
 
 endmodule
