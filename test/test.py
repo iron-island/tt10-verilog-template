@@ -82,8 +82,6 @@ def update_bit(signal, bitval, bitstart, bitend=None):
     else:
         temp[bitstart:bitend] = bitval
 
-    print(temp)
-
     return temp
 
 @cocotb.test()
@@ -107,11 +105,14 @@ async def test_project(dut):
     A = init_A
     B = init_B
     C = init_C
+    instruction_counter = 0
     while (ip < len(program_list)):
         opcode  = program_list[ip]
         operand = program_list[ip+1]
 
         A, B, C, ip, program_out, out_valid = run_instruction(opcode, operand, A, B, C, ip)
+        print(f'Instruction {instruction_counter}: A, B, C = {(A, B, C)}, ip = {ip}')
+        instruction_counter += 1
 
         if (out_valid):
             program_out_list.append(program_out)
@@ -174,8 +175,8 @@ async def test_project(dut):
         # Check output value
         if (dut.uo_out.value[3]):
             dut._log.info(f'Design signaled output is valid with index = {out_counter}')
-            dut._log.info(f'Expected = {int(dut.uo_out.value[2:0])}')
-            dut._log.info(f'Actual   = {program_out_list[out_counter]}')
+            dut._log.info(f'Expected  = {program_out_list[out_counter]}')
+            dut._log.info(f'Actual    = {int(dut.uo_out.value[2:0])}')
             assert dut.uo_out.value[2:0] == program_out_list[out_counter]
             out_counter += 1
 
